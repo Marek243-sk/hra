@@ -1,15 +1,26 @@
 package sk.tuke.hra;
 
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.graphics.Rect;
+import android.media.Image;
 import android.os.Bundle;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+
+import java.util.Random;
 
 public class NormalLevelActivity extends AppCompatActivity {
 
@@ -18,6 +29,17 @@ public class NormalLevelActivity extends AppCompatActivity {
     float spaceshipX, spaceshipY;
     private TextView score;
     private DrawView drawView;
+    private int lives = 3;
+    private TextView livesTextView;
+
+    private Random random;
+    private static final int ANIMATION_DURATION = 4000; // Animation duration in milliseconds
+    private static final int SCREEN_WIDTH = 1080; // Screen width in pixels
+    private static final int SCREEN_HEIGHT = 2920; // Screen height in pixels
+    private static final int METEOR_WIDTH = 50; // Meteor width in pixels
+    private static final int METEOR_HEIGHT = 50; // Meteor height in pixels
+    private static  final int METEOR_FREQUENCY = 1000;
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +63,12 @@ public class NormalLevelActivity extends AppCompatActivity {
             touchHandler(event);
             return true;
         });
+
+        random = new Random();
+
+        meteorsFall();
+
+        livesTextView = findViewById(R.id.life_normal);
     }
 
     //Ovládanie vesmírnej lode
@@ -80,5 +108,71 @@ public class NormalLevelActivity extends AppCompatActivity {
         }
     }
 
+    private void meteorsFall() {
 
+        AnimatorSet animatorSet = new AnimatorSet();
+
+        for (int i = 0; i < 10; i++) {
+            ImageView meteor = createMeteor();
+            Animator animator = createAnimator(meteor);
+
+            animator.setStartDelay(i * METEOR_FREQUENCY);
+            animatorSet.playTogether(animator);
+
+            if (checkCollision(meteor, spaceship)) {
+                updateLives();
+            }
+        }
+        animatorSet.setDuration(ANIMATION_DURATION);
+        animatorSet.start();
+    }
+
+    @NonNull
+    private ImageView createMeteor() {
+
+        ImageView meteor = new ImageView(this);
+        meteor.setImageResource(R.drawable.meteor);
+        meteor.setLayoutParams(new ViewGroup.LayoutParams(METEOR_WIDTH, METEOR_HEIGHT));
+
+        int x = random.nextInt(SCREEN_WIDTH - METEOR_WIDTH);
+        int y = -METEOR_HEIGHT;
+        meteor.setX(x);
+        meteor.setY(y);
+
+        ViewGroup layout = findViewById(R.id.normal_layout);
+        layout.addView(meteor);
+
+        return meteor;
+    }
+
+    @NonNull
+    private Animator createAnimator(View view) {
+
+        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY", SCREEN_HEIGHT);
+        animator.setInterpolator(new LinearInterpolator());
+
+        return animator;
+    }
+
+    private boolean checkCollision(ImageView meteor, ImageView spaceship) {
+        Rect meteorRect = new Rect();
+        meteor.getHitRect(meteorRect);
+
+        Rect spaceshipRect = new Rect();
+        spaceship.getHitRect(spaceshipRect);
+
+        return Rect.intersects(meteorRect, spaceshipRect);
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void updateLives() {
+        lives--;
+        livesTextView.setText("Lives: " + lives);
+    }
+
+    private void updateScore() {
+        int currentScore = Integer.parseInt(score.getText().toString());
+        int newScore = currentScore + 10;
+        score.setText(String.valueOf(newScore));
+    }
 }
