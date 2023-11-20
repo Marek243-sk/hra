@@ -5,6 +5,7 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
@@ -15,7 +16,6 @@ import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -24,6 +24,8 @@ import java.util.Random;
 
 public class NormalLevelActivity extends AppCompatActivity {
 
+    private static final int SPACESHIP_WIDTH = 200;
+    private static final int SPACESHIP_HEIGHT = 200;
     private ConstraintLayout gameLayout;
     private ImageView spaceship;
     float spaceshipX, spaceshipY;
@@ -39,6 +41,8 @@ public class NormalLevelActivity extends AppCompatActivity {
     private static final int METEOR_WIDTH = 50; // Meteor width in pixels
     private static final int METEOR_HEIGHT = 50; // Meteor height in pixels
     private static final int METEOR_FREQUENCY = 1000;
+
+    private MediaPlayer mediaPlayer;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -59,7 +63,22 @@ public class NormalLevelActivity extends AppCompatActivity {
         gameLayout = findViewById(R.id.normal_layout);
         scoreTextView = findViewById(R.id.score_normal);
 
-        spaceship = findViewById(R.id.spaceship_normal);
+        //spaceship = findViewById(R.id.spaceship_normal);
+
+
+        spaceship = new ImageView(this);
+        spaceship.setImageResource(R.drawable.spaceship);
+        spaceship.setLayoutParams(new ViewGroup.LayoutParams(SPACESHIP_WIDTH, SPACESHIP_HEIGHT));
+
+        int x = SCREEN_WIDTH / 2 - SPACESHIP_WIDTH / 2;
+        int y = SCREEN_HEIGHT - SPACESHIP_HEIGHT;
+        spaceship.setX(x);
+        spaceship.setY(y);
+
+        ViewGroup layout = findViewById(R.id.normal_layout);
+        layout.addView(spaceship);
+
+
 
         DrawView drawView = findViewById(R.id.draw_view_normal);
         drawView.setSpaceship(spaceship);
@@ -74,6 +93,9 @@ public class NormalLevelActivity extends AppCompatActivity {
         meteorsFall();
 
         livesTextView = findViewById(R.id.life_normal);
+
+        mediaPlayer = MediaPlayer.create(this, R.raw.normal);
+        mediaPlayer.setLooping(true);
     }
 
     @NonNull
@@ -83,19 +105,20 @@ public class NormalLevelActivity extends AppCompatActivity {
         return animator;
     }
 
-    //Ovládanie vesmírnej lode
     private void spaceshipMove(float x1, float y1) {
         float x2 = spaceship.getX() + x1;
         float y2 = spaceship.getY() + y1;
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
         int screenHeight = getResources().getDisplayMetrics().heightPixels;
-        //Obrázok neprejde cez hranice obrazovky
+        // Obrázok neprejde cez hranice obrazovky
         x2 = (x2 < 0) ? 0 : (x2 + spaceship.getWidth() > screenWidth) ? screenWidth - spaceship.getWidth() : x2;
         y2 = (y2 < 0) ? 0 : (y2 + spaceship.getHeight() > screenHeight) ? screenHeight - spaceship.getHeight() : y2;
-        //Nastavenie nových hodnôt
+        // Nastavenie nových hodnôt
         spaceship.setX(x2);
         spaceship.setY(y2);
     }
+
+
 
     private void touchHandler(MotionEvent event) {
         switch (event.getAction()) {
@@ -135,17 +158,12 @@ public class NormalLevelActivity extends AppCompatActivity {
 
         AnimatorSet animatorSet = new AnimatorSet();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             ImageView meteor = createMeteor();
             Animator animator = createAnimator(meteor);
 
             animator.setStartDelay(i * METEOR_FREQUENCY);
             animatorSet.playTogether(animator);
-
-            /*if (checkCollision(meteor, spaceship)) {
-                updateLives();
-            }*/
-            // Check collision and update score when meteor leaves the screen
             animator.addListener(new Animator.AnimatorListener() {
                 @Override
                 public void onAnimationStart(Animator animation) {
@@ -154,11 +172,11 @@ public class NormalLevelActivity extends AppCompatActivity {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     if (meteor.getY() >= SCREEN_HEIGHT && !checkCollision(meteor, spaceship)) {
-                            gameLayout.removeView(meteor);
-                            score++;
-                            updateScore();
-                        }
+                        gameLayout.removeView(meteor);
+                        score++;
+                        updateScore();
                     }
+                }
 
                 @Override
                 public void onAnimationCancel(Animator animation) {
@@ -193,5 +211,28 @@ public class NormalLevelActivity extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void updateScore() {
         scoreTextView.setText("SCORE: " + score);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!mediaPlayer.isPlaying()) {
+            mediaPlayer.start();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mediaPlayer.release();
+        mediaPlayer = null;
     }
 }
