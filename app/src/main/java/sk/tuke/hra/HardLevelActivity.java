@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
@@ -11,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -27,13 +29,16 @@ public class HardLevelActivity extends AppCompatActivity {
     float spaceshipX, spaceshipY;
     private TextView score;
     private DrawView drawView;
+    private int lives = 3;
+    private TextView livesTextView;
 
     private Random random;
-    private static final int ANIMATION_DURATION = 3000; // Animation duration in milliseconds
+    private static final int ANIMATION_DURATION = 4000; // Animation duration in milliseconds
     private static final int SCREEN_WIDTH = 1080; // Screen width in pixels
-    private static final int SCREEN_HEIGHT = 1920; // Screen height in pixels
-    private static final int METEOR_WIDTH = 100; // Meteor width in pixels
-    private static final int METEOR_HEIGHT = 100; // Meteor height in pixels
+    private static final int SCREEN_HEIGHT = 2920; // Screen height in pixels
+    private static final int METEOR_WIDTH = 50; // Meteor width in pixels
+    private static final int METEOR_HEIGHT = 50; // Meteor height in pixels
+    private static  final int METEOR_FREQUENCY = 1000;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -58,6 +63,12 @@ public class HardLevelActivity extends AppCompatActivity {
             touchHandler(event);
             return true;
         });
+
+        random = new Random();
+
+        meteorsFall();
+
+        livesTextView = findViewById(R.id.life_hard);
     }
 
     //Ovládanie vesmírnej lode
@@ -97,38 +108,37 @@ public class HardLevelActivity extends AppCompatActivity {
         }
     }
 
-    private void startAnimation() {
-        // Create a container for the animators
+    private void meteorsFall() {
+
         AnimatorSet animatorSet = new AnimatorSet();
 
-        // Create an animator for each meteor
         for (int i = 0; i < 10; i++) {
             ImageView meteor = createMeteor();
             Animator animator = createAnimator(meteor);
+
+            animator.setStartDelay(i * METEOR_FREQUENCY);
             animatorSet.playTogether(animator);
+
+            if (checkCollision(meteor, spaceship)) {
+                updateLives();
+            }
         }
-
-        // Set the animation duration
         animatorSet.setDuration(ANIMATION_DURATION);
-
-        // Start the animation
         animatorSet.start();
     }
 
     @NonNull
     private ImageView createMeteor() {
-        // Create a new ImageView for the meteor
-        ImageView meteor = new ImageView(this);
-        meteor.setImageResource(R.drawable.meteor); // Set the meteor image resource
-        meteor.setLayoutParams(new ViewGroup.LayoutParams(METEOR_WIDTH, METEOR_HEIGHT)); // Set the meteor size
 
-        // Set the initial position of the meteor
+        ImageView meteor = new ImageView(this);
+        meteor.setImageResource(R.drawable.meteor);
+        meteor.setLayoutParams(new ViewGroup.LayoutParams(METEOR_WIDTH, METEOR_HEIGHT));
+
         int x = random.nextInt(SCREEN_WIDTH - METEOR_WIDTH);
         int y = -METEOR_HEIGHT;
         meteor.setX(x);
         meteor.setY(y);
 
-        // Add the meteor to the layout
         ViewGroup layout = findViewById(R.id.normal_layout);
         layout.addView(meteor);
 
@@ -137,12 +147,43 @@ public class HardLevelActivity extends AppCompatActivity {
 
     @NonNull
     private Animator createAnimator(View view) {
-        // Create an ObjectAnimator for the meteor
-        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY", SCREEN_HEIGHT);
 
-        // Set the interpolator to create an accelerating effect
-        animator.setInterpolator(new AccelerateInterpolator());
+        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY", SCREEN_HEIGHT);
+        animator.setInterpolator(new LinearInterpolator());
 
         return animator;
     }
+
+    private boolean checkCollision(ImageView meteor, ImageView spaceship) {
+        Rect meteorRect = new Rect();
+        meteor.getHitRect(meteorRect);
+
+        Rect spaceshipRect = new Rect();
+        spaceship.getHitRect(spaceshipRect);
+
+        boolean collision = Rect.intersects(meteorRect, spaceshipRect);
+
+        if (collision) {
+            updateLives();
+        } else if (meteor.getY() >= SCREEN_HEIGHT) {
+            updateScore();
+        }
+
+        return collision;
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void updateLives() {
+        lives--;
+        livesTextView.setText("Lives: " + lives);
+    }
+
+    private void updateScore() {
+        int currentScore = Integer.parseInt(score.getText().toString());
+        int newScore = currentScore + 10;
+        score.setText(String.valueOf(newScore));
+    }
 }
+/*int currentScore = Integer.parseInt(score.getText().toString());
+        int newScore = currentScore + 10;
+        score.setText(String.valueOf(newScore));*/

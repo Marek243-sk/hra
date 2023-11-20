@@ -5,8 +5,8 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.graphics.Rect;
-import android.media.Image;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,20 +25,20 @@ import java.util.Random;
 public class NormalLevelActivity extends AppCompatActivity {
 
     private ConstraintLayout gameLayout;
-    private ImageView spaceship, meteor;
+    private ImageView spaceship;
     float spaceshipX, spaceshipY;
-    private TextView score;
-    private DrawView drawView;
+    private TextView scoreTextView;
+    private int score = 0;
     private int lives = 3;
     private TextView livesTextView;
 
     private Random random;
     private static final int ANIMATION_DURATION = 4000; // Animation duration in milliseconds
-    private static final int SCREEN_WIDTH = 1080; // Screen width in pixels
-    private static final int SCREEN_HEIGHT = 2920; // Screen height in pixels
+    private int SCREEN_WIDTH;
+    private int SCREEN_HEIGHT;
     private static final int METEOR_WIDTH = 50; // Meteor width in pixels
     private static final int METEOR_HEIGHT = 50; // Meteor height in pixels
-    private static  final int METEOR_FREQUENCY = 1000;
+    private static final int METEOR_FREQUENCY = 1000;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -51,12 +51,17 @@ public class NormalLevelActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_normal_level);
 
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        SCREEN_WIDTH = displayMetrics.widthPixels; // Screen width in pixels
+        SCREEN_HEIGHT = displayMetrics.heightPixels; // Screen height in pixels
+
         gameLayout = findViewById(R.id.normal_layout);
-        score = findViewById(R.id.score_normal);
+        scoreTextView = findViewById(R.id.score_normal);
 
         spaceship = findViewById(R.id.spaceship_normal);
 
-        drawView = findViewById(R.id.draw_view_normal);
+        DrawView drawView = findViewById(R.id.draw_view_normal);
         drawView.setSpaceship(spaceship);
 
         spaceship.setOnTouchListener((v, event) -> {
@@ -71,60 +76,41 @@ public class NormalLevelActivity extends AppCompatActivity {
         livesTextView = findViewById(R.id.life_normal);
     }
 
+    @NonNull
+    private Animator createAnimator(View view) {
+        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY", SCREEN_HEIGHT);
+        animator.setInterpolator(new LinearInterpolator());
+        return animator;
+    }
+
     //Ovládanie vesmírnej lode
     private void spaceshipMove(float x1, float y1) {
-
         float x2 = spaceship.getX() + x1;
         float y2 = spaceship.getY() + y1;
-
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
         int screenHeight = getResources().getDisplayMetrics().heightPixels;
-
         //Obrázok neprejde cez hranice obrazovky
         x2 = (x2 < 0) ? 0 : (x2 + spaceship.getWidth() > screenWidth) ? screenWidth - spaceship.getWidth() : x2;
         y2 = (y2 < 0) ? 0 : (y2 + spaceship.getHeight() > screenHeight) ? screenHeight - spaceship.getHeight() : y2;
-
         //Nastavenie nových hodnôt
         spaceship.setX(x2);
         spaceship.setY(y2);
     }
 
     private void touchHandler(MotionEvent event) {
-
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 spaceshipX = event.getRawX();
                 spaceshipY = event.getRawY();
                 break;
-
             case MotionEvent.ACTION_MOVE:
                 float x1 = event.getRawX() - spaceshipX;
                 float y1 = event.getRawY() - spaceshipY;
-
                 spaceshipMove(x1, y1);
                 spaceshipX = event.getRawX();
                 spaceshipY = event.getRawY();
                 break;
         }
-    }
-
-    private void meteorsFall() {
-
-        AnimatorSet animatorSet = new AnimatorSet();
-
-        for (int i = 0; i < 10; i++) {
-            ImageView meteor = createMeteor();
-            Animator animator = createAnimator(meteor);
-
-            animator.setStartDelay(i * METEOR_FREQUENCY);
-            animatorSet.playTogether(animator);
-
-            if (checkCollision(meteor, spaceship)) {
-                updateLives();
-            }
-        }
-        animatorSet.setDuration(ANIMATION_DURATION);
-        animatorSet.start();
     }
 
     @NonNull
@@ -145,14 +131,48 @@ public class NormalLevelActivity extends AppCompatActivity {
         return meteor;
     }
 
-    @NonNull
-    private Animator createAnimator(View view) {
+    private void meteorsFall() {
 
-        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY", SCREEN_HEIGHT);
-        animator.setInterpolator(new LinearInterpolator());
+        AnimatorSet animatorSet = new AnimatorSet();
 
-        return animator;
+        for (int i = 0; i < 10; i++) {
+            ImageView meteor = createMeteor();
+            Animator animator = createAnimator(meteor);
+
+            animator.setStartDelay(i * METEOR_FREQUENCY);
+            animatorSet.playTogether(animator);
+
+            /*if (checkCollision(meteor, spaceship)) {
+                updateLives();
+            }*/
+            // Check collision and update score when meteor leaves the screen
+            animator.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    if (meteor.getY() >= SCREEN_HEIGHT && !checkCollision(meteor, spaceship)) {
+                            gameLayout.removeView(meteor);
+                            score++;
+                            updateScore();
+                        }
+                    }
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                }
+
+                @Override
+                public void onAnimationRepeat(Animator animation) {
+                }
+            });
+        }
+        animatorSet.setDuration(ANIMATION_DURATION);
+        animatorSet.start();
     }
+
 
     private boolean checkCollision(ImageView meteor, ImageView spaceship) {
         Rect meteorRect = new Rect();
@@ -170,9 +190,8 @@ public class NormalLevelActivity extends AppCompatActivity {
         livesTextView.setText("Lives: " + lives);
     }
 
+    @SuppressLint("SetTextI18n")
     private void updateScore() {
-        int currentScore = Integer.parseInt(score.getText().toString());
-        int newScore = currentScore + 10;
-        score.setText(String.valueOf(newScore));
+        scoreTextView.setText("SCORE: " + score);
     }
 }
