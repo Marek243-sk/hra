@@ -1,6 +1,7 @@
 package sk.tuke.hra;
 
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
@@ -10,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class LevelSelectionActivity extends AppCompatActivity {
 
+    MediaPlayer mediaPlayer;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,5 +42,32 @@ public class LevelSelectionActivity extends AppCompatActivity {
             startActivity(new Intent(LevelSelectionActivity.this, HardLevelActivity.class));
             finish();
         });
+
+        mediaPlayer = MediaPlayer.create(this, R.raw.level_selecrion);
+        mediaPlayer.setLooping(true);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!mediaPlayer.isPlaying()) {
+            mediaPlayer.start();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mediaPlayer.release();
+        mediaPlayer = null;
+    }
+
 }
