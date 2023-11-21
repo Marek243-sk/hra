@@ -10,7 +10,7 @@ import android.widget.ImageView;
 import androidx.annotation.Nullable;
 
 public class DrawView extends View {
-    private ImageView spaceship;
+    private ImageView spaceship, meteor;
     private void init() {
     }
     public DrawView(Context context) {
@@ -49,4 +49,7 @@ public class DrawView extends View {
         this.spaceship = spaceship;
     }
 
+    public void setMeteor(ImageView meteor) {
+        this.meteor = meteor;
+    }
 }

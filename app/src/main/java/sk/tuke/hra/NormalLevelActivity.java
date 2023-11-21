@@ -27,7 +27,7 @@ public class NormalLevelActivity extends AppCompatActivity {
     private static final int SPACESHIP_WIDTH = 200;
     private static final int SPACESHIP_HEIGHT = 200;
     private ConstraintLayout gameLayout;
-    private ImageView spaceship;
+    private ImageView spaceship, meteor;
     float spaceshipX, spaceshipY;
     private TextView scoreTextView;
     private int score = 0;
@@ -65,7 +65,7 @@ public class NormalLevelActivity extends AppCompatActivity {
 
         //spaceship = findViewById(R.id.spaceship_normal);
 
-
+/*
         spaceship = new ImageView(this);
         spaceship.setImageResource(R.drawable.spaceship);
         spaceship.setLayoutParams(new ViewGroup.LayoutParams(SPACESHIP_WIDTH, SPACESHIP_HEIGHT));
@@ -74,14 +74,17 @@ public class NormalLevelActivity extends AppCompatActivity {
         int y = SCREEN_HEIGHT - SPACESHIP_HEIGHT;
         spaceship.setX(x);
         spaceship.setY(y);
-
-        ViewGroup layout = findViewById(R.id.normal_layout);
+*/
+        @SuppressLint("CutPasteId") ViewGroup layout = findViewById(R.id.normal_layout);
+        spaceship = createSpaceship();
         layout.addView(spaceship);
+        //layout.addView(meteor);
 
 
 
         DrawView drawView = findViewById(R.id.draw_view_normal);
         drawView.setSpaceship(spaceship);
+        drawView.setMeteor(meteor);
 
         spaceship.setOnTouchListener((v, event) -> {
             touchHandler(event);
@@ -136,6 +139,19 @@ public class NormalLevelActivity extends AppCompatActivity {
         }
     }
 
+    private ImageView createSpaceship() {
+        ImageView spaceship = new ImageView(this);
+        spaceship.setImageResource(R.drawable.spaceship);
+        spaceship.setLayoutParams(new ViewGroup.LayoutParams(SPACESHIP_WIDTH, SPACESHIP_HEIGHT));
+
+        int x = SCREEN_WIDTH / 2 - SPACESHIP_WIDTH / 2;
+        int y = SCREEN_HEIGHT - SPACESHIP_HEIGHT;
+        spaceship.setX(x);
+        spaceship.setY(y);
+
+        return spaceship;
+    }
+
     @NonNull
     private ImageView createMeteor() {
 
@@ -171,7 +187,7 @@ public class NormalLevelActivity extends AppCompatActivity {
 
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    if (meteor.getY() >= SCREEN_HEIGHT && !checkCollision(meteor, spaceship)) {
+                    if (spaceship != null && meteor.getY() >= SCREEN_HEIGHT && !checkCollision(meteor, spaceship)) {
                         gameLayout.removeView(meteor);
                         score++;
                         updateScore();
